@@ -12,19 +12,22 @@ export class OutlookClient {
             .split(/\r?\n/);
     }
 
-    private parseIcsDate(rawLine: string): Date | null {
-        const dateValue = rawLine.includes(':') ? rawLine.split(':').pop() : rawLine;
-        if (!dateValue) return null;
-
-        const match = dateValue.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
+    private parseIcsDate(val: string) {
+        const match = val.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/);
         if (!match) return null;
 
         const [, year, month, day, hours = '00', minutes = '00', seconds = '00', isUtc] = match;
-
+        
+        const formattedString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        
+        let date: Date;
         if (isUtc) {
-            return new Date(Date.UTC(+year!, +month! - 1, +day!, +hours, +minutes, +seconds));
+            date = new Date(Date.UTC(+year!, +month! - 1, +day!, +hours, +minutes, +seconds));
+        } else {
+            date = new Date(+year!, +month! - 1, +day!, +hours, +minutes, +seconds);
         }
-        return new Date(+year!, +month! - 1, +day!, +hours, +minutes, +seconds);
+
+        return { date, formattedString, isUtc: !!isUtc };
     }
 
     private unescapeIcsText(text: string): string {
@@ -64,13 +67,27 @@ export class OutlookClient {
                     const val = line.substring(colonIdx + 1);
                     const propName = keyPart.split(';')[0]?.trim() ?? '';
 
+                    const tzidMatch = keyPart.match(/TZID=([^;]+)/);
+                    const tzid = tzidMatch && tzidMatch.length > 1 ? tzidMatch[1]!.replace(/['"]/g, '') : null;
+
                     switch (propName) {
-                        case 'DTSTART':
-                            currentEvent.start = this.parseIcsDate(line)!;
+                        case 'DTSTART': {
+                            const parsed = this.parseIcsDate(val.trim());
+                            if (parsed) {
+                                currentEvent.start = parsed.date;
+                                currentEvent.startString = parsed.formattedString;
+                                currentEvent.timeZone = tzid || (parsed.isUtc ? 'UTC' : 'UTC'); 
+                            }
                             break;
-                        case 'DTEND':
-                            currentEvent.end = this.parseIcsDate(line)!;
+                        }
+                        case 'DTEND': {
+                            const parsed = this.parseIcsDate(val.trim());
+                            if (parsed) {
+                                currentEvent.end = parsed.date;
+                                currentEvent.endString = parsed.formattedString;
+                            }
                             break;
+                        }
                         case 'SUMMARY':
                             currentEvent.summary = val.trim();
                             break;
@@ -85,6 +102,6 @@ export class OutlookClient {
             }
         }
 
-        return events;
+        return events.filter(ev => ev.summary && !ev.summary.toLowerCase().startsWith('canceled:'));
     }
 }

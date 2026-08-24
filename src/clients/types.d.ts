@@ -4,4 +4,7 @@ export interface IcsEvent {
   description?: string;
   start: Date;
   end?: Date;
+  startString: string; 
+  endString?: string;
+  timeZone: string;
 }

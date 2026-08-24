@@ -120,6 +120,43 @@ export class GoogleCalendarClient {
         }
     }
 
+    public async reconcileEvents(
+        expectedGoogleIds: Set<string>, 
+        timeMin: Date, 
+        timeMax: Date
+    ) {
+        console.log('Starting reconciliation process...');
+
+        try {
+            const result = await this.client.events.list({
+                calendarId: this.calendarId,
+                timeMin: timeMin.toISOString(),
+                timeMax: timeMax.toISOString(),
+                privateExtendedProperty: ['syncedFromIcs=true'],
+                singleEvents: true,
+                maxResults: 2500,
+            });
+
+            const existingEvents = result.data.items || [];
+
+            let deletedCount = 0;
+
+            for (const gEvent of existingEvents) {
+                if (gEvent.id && !expectedGoogleIds.has(gEvent.id)) {
+                    console.log(`Orphaned event found: "${gEvent.summary}". Deleting...`);
+                    await this.deleteEvent(gEvent.id);
+                    deletedCount++;
+                }
+            }
+
+            console.log(`Reconciliation complete. Deleted ${deletedCount} cancelled/moved events.`);
+
+        } catch (error) {
+            console.error('Error during reconciliation:', error);
+            throw error;
+        }
+    }
+
     public static generateGoogleId(outlookUid: string): string {
         return crypto
             .createHash('sha256')
