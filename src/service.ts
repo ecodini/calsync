@@ -73,6 +73,7 @@ export async function syncCalendar() {
                 dateTime: fallbackEndString,
                 timeZone: windowsToIana[outlookEvent.timeZone] || outlookEvent.timeZone,
             },
+            colorId: '5',
             extendedProperties: {
             private: { syncedFromIcs: 'true' }
         }
