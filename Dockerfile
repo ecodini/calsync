@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # --- Production Image ---
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -26,6 +26,7 @@ RUN npm ci --only=production
 
 # Copy compiled TypeScript code from builder stage
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/windowsZones.json ./
 
 # Create empty keys directory (will be overridden by volume mount)
 RUN mkdir -p /app/keys
