@@ -5,7 +5,7 @@ import path from "path";
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 
 export class GoogleCalendarClient {
-    private credentialsPath: string;
+    private readonly credentialsPath: string;
     private auth: GoogleAuth;
 
     constructor(
