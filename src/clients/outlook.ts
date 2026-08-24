@@ -216,7 +216,11 @@ export class OutlookClient {
                         const overrideKey = `${master.uid}_${instanceStartStr}`;
                         
                         if (overrides.has(overrideKey)) {
-                            flattenedEvents.push(overrides.get(overrideKey)!);
+                            const overrideEvent = overrides.get(overrideKey)!;
+                            flattenedEvents.push({
+                                ...overrideEvent,
+                                uid: overrideKey 
+                            });
                         } else {
                             const durationMs = (master.end?.getTime() ?? master.start.getTime()) - master.start.getTime();
                             const instanceEnd = new Date(currentDate.getTime() + durationMs);

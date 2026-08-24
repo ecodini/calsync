@@ -5,6 +5,8 @@ import path from "path";
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export class GoogleCalendarClient {
     private readonly credentialsPath: string;
     private auth: GoogleAuth;
@@ -95,6 +97,8 @@ export class GoogleCalendarClient {
 
     public async upsertEvent(eventId: string, eventBody: calendar_v3.Schema$Event) {
         eventBody.id = eventId;
+
+        await delay(200);
 
         try {
             const result = await this.client.events.insert({
