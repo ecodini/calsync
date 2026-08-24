@@ -1,25 +1,27 @@
 import { google } from "googleapis";
+import { GoogleAuth } from "google-auth-library";
 import path from "path";
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
 
 export class GoogleCalendarClient {
     private credentialsPath: string;
+    private auth: GoogleAuth;
 
     constructor(
         private readonly calendarId: string,
         keyFileName: string,
     ) {
         this.credentialsPath = path.join(process.cwd(), 'keys/' + keyFileName);
-    }
 
-    public async listEvents() {
-        const auth = new google.auth.GoogleAuth({
+        this.auth = new GoogleAuth({
             keyFile: this.credentialsPath,
             scopes: SCOPES,
         });
+    }
 
-        const calendar = google.calendar({version: 'v3', auth});
+    public async listEvents() {
+        const calendar = google.calendar({version: 'v3', auth: this.auth});
         const result = await calendar.events.list({
             calendarId: this.calendarId,
             timeMin: new Date().toISOString(),
