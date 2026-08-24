@@ -1,0 +1,11 @@
+services:
+  calendar-sync:
+    build: .
+    container_name: outlook-gcal-sync
+    restart: unless-stopped
+    environment:
+      - OUTLOOK_ICS_URL=${OUTLOOK_ICS_URL}
+      - GOOGLE_CAL_ID=${GOOGLE_CAL_ID}
+      - GOOGLE_CAL_KEY=${GOOGLE_CAL_KEY}
+    volumes:
+      - ./keys:/app/keys
