@@ -1,4 +1,14 @@
-import type { IcsEvent } from "./types.d.ts";
+export interface IcsEvent {
+  uid?: string;
+  summary?: string;
+  description?: string;
+  start: Date;
+  end?: Date;
+  startString: string; 
+  endString?: string;
+  timeZone: string;
+}
+
 
 export class OutlookClient {
     constructor(
