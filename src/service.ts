@@ -81,4 +81,5 @@ export async function syncCalendar() {
     }
 
     await googleClient.reconcileEvents(googleIDs, windowStart, windowEnd);
+    console.log("Run finished");
 }

@@ -20,7 +20,8 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "dotenv": "^17.4.2",
-    "googleapis": "^105.0.0"
+    "googleapis": "^105.0.0",
+    "node-cron": "^4.6.0"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
