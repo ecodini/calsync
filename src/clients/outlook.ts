@@ -5,14 +5,14 @@ export class OutlookClient {
         private icsUrl: string, 
     ) {}
     
-    _unfoldLines(icsText: string): string[] {
+    private unfoldLines(icsText: string): string[] {
         return icsText
             .replace(/\r\n[ \t]/g, '')
             .replace(/\n[ \t]/g, '')
             .split(/\r?\n/);
     }
 
-    _parseIcsDate(rawLine: string): Date | null {
+    private parseIcsDate(rawLine: string): Date | null {
         const dateValue = rawLine.includes(':') ? rawLine.split(':').pop() : rawLine;
         if (!dateValue) return null;
 
@@ -27,6 +27,14 @@ export class OutlookClient {
         return new Date(+year!, +month! - 1, +day!, +hours, +minutes, +seconds);
     }
 
+    private unescapeIcsText(text: string): string {
+        return text
+            .replace(/\\n/gi, '\n')
+            .replace(/\\;/g, ';')
+            .replace(/\\,/g, ',')
+            .replace(/\\\\/g, '\\');
+    }
+
     async getEvents(): Promise<IcsEvent[]> {
         const response = await fetch(this.icsUrl);
 
@@ -35,7 +43,7 @@ export class OutlookClient {
         }
 
         const icsText = await response.text();
-        const lines = this._unfoldLines(icsText);
+        const lines = this.unfoldLines(icsText);
 
         const events: IcsEvent[] = [];
         let currentEvent: Partial<IcsEvent> | null = null;
@@ -58,13 +66,16 @@ export class OutlookClient {
 
                     switch (propName) {
                         case 'DTSTART':
-                            currentEvent.start = this._parseIcsDate(line)!;
+                            currentEvent.start = this.parseIcsDate(line)!;
                             break;
                         case 'DTEND':
-                            currentEvent.end = this._parseIcsDate(line)!;
+                            currentEvent.end = this.parseIcsDate(line)!;
                             break;
                         case 'SUMMARY':
                             currentEvent.summary = val.trim();
+                            break;
+                        case 'DESCRIPTION':
+                            currentEvent.description = this.unescapeIcsText(val.trim());
                             break;
                         case 'UID':
                             currentEvent.uid = val.trim();
@@ -74,6 +85,6 @@ export class OutlookClient {
             }
         }
 
-        return events.filter(ev => ev.summary && !ev.summary.toLowerCase().startsWith('canceled:'));
+        return events;
     }
 }

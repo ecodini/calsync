@@ -1,5 +1,6 @@
-import { google } from "googleapis";
+import { google, calendar_v3 } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
+import crypto from "node:crypto";
 import path from "path";
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
@@ -20,9 +21,12 @@ export class GoogleCalendarClient {
         });
     }
 
+    private get client(): calendar_v3.Calendar {
+        return google.calendar({ version: 'v3', auth: this.auth });
+    }
+
     public async listEvents() {
-        const calendar = google.calendar({version: 'v3', auth: this.auth});
-        const result = await calendar.events.list({
+        const result = await this.client.events.list({
             calendarId: this.calendarId,
             timeMin: new Date().toISOString(),
             maxResults: 10,
@@ -33,13 +37,93 @@ export class GoogleCalendarClient {
         const events = result.data.items;
         if (!events || events.length === 0) {
             console.log('No upcoming events found.');
-            return;
+            return [];
         }
-        console.log('Upcoming 10 events:');
+        
+        console.log(`Found ${events.length} upcoming events.`);
+        return events;
+    }
 
-        for (const event of events) {
-            const start = event.start?.dateTime ?? event.start?.date;
-            console.log(`${start} - ${event.summary}`);
+    public async getEvent(eventId: string) {
+        try {
+            const result = await this.client.events.get({
+                calendarId: this.calendarId,
+                eventId: eventId,
+            });
+            return result.data;
+        } catch (error: any) {
+            if (error.code === 404) {
+                return null; // Return null if not found instead of crashing
+            }
+            throw error;
         }
+    }
+
+    public async createEvent(eventBody: calendar_v3.Schema$Event) {
+        const result = await this.client.events.insert({
+            calendarId: this.calendarId,
+            requestBody: eventBody,
+        });
+        return result.data;
+    }
+
+    public async updateEvent(eventId: string, eventBody: calendar_v3.Schema$Event) {
+        const result = await this.client.events.update({
+            calendarId: this.calendarId,
+            eventId: eventId,
+            requestBody: eventBody,
+        });
+        return result.data;
+    }
+
+    public async deleteEvent(eventId: string) {
+        try {
+            await this.client.events.delete({
+                calendarId: this.calendarId,
+                eventId: eventId,
+            });
+            console.log(`Deleted event: ${eventId}`);
+        } catch (error: any) {
+            // Ignore 404s or 410s if the event is already gone
+            if (error.code === 404 || error.code === 410) {
+                console.log(`Event ${eventId} already deleted or not found.`);
+                return;
+            }
+            throw error;
+        }
+    }
+
+    public async upsertEvent(eventId: string, eventBody: calendar_v3.Schema$Event) {
+        eventBody.id = eventId;
+
+        try {
+            const result = await this.client.events.insert({
+                calendarId: this.calendarId,
+                requestBody: eventBody,
+            });
+            console.log(`Inserted new event: ${eventId}`);
+            return result.data;
+            
+        } catch (error: any) {
+            if (error.code === 409) {
+                console.log(`Event ${eventId} exists. Updating...`);
+                
+                const result = await this.client.events.update({
+                    calendarId: this.calendarId,
+                    eventId: eventId,
+                    requestBody: eventBody,
+                });
+                return result.data;
+            }
+            
+            throw error; 
+        }
+    }
+
+    public static generateGoogleId(outlookUid: string): string {
+        return crypto
+            .createHash('sha256')
+            .update(outlookUid)
+            .digest('hex');
     }
 }
