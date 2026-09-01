@@ -31,11 +31,14 @@ for (const entry of mapTimezones) {
 
 const DAYS_TO_SYNC = 90;
 
-const windowStart = new Date(Date.now() - (DAYS_TO_SYNC * 24 * 60 * 60 * 1000));
-const windowEnd = new Date(Date.now() + (DAYS_TO_SYNC * 24 * 60 * 60 * 1000));
-
 export async function syncCalendar() {
     console.log("Running sync at ", new Date().toISOString());
+
+    const windowStart = new Date(Date.now() - (DAYS_TO_SYNC * 24 * 60 * 60 * 1000));
+    const windowEnd = new Date(Date.now() + (DAYS_TO_SYNC * 24 * 60 * 60 * 1000));
+
+    console.log("Time window: from " + windowStart.toISOString() + " to " + windowEnd.toISOString());
+
     const outlookCalendarItems = await outlookClient.getEvents();
     console.log(`Fetched ${outlookCalendarItems.length} events from Outlook calendar.`);3
 
